@@ -1,14 +1,17 @@
 package rule
 
 import (
+	"bytes"
 	"fmt"
 	"log"
 )
 
 type notRule struct {
 	idx   int
+	rule  string
 	sName string // 结构体名
 	fName string // 字段名
+	fType string
 	val   string
 	isPtr bool
 }
@@ -20,15 +23,27 @@ func (nr *notRule) Name() string {
 }
 
 func (nr *notRule) Meth() string {
-	ret := fmt.Sprintf(
-		"errors.New(`invalid<not>: %s.%s must not be %s`)",
-		nr.sName, nr.fName, nr.val,
-	)
+	sb := &bytes.Buffer{}
 	if nr.isPtr && nr.val != "nil" {
-		return fmt.Sprintf(notRulePtrFunc,
-			nr.sName, nr.fName, nr.idx, nr.val, ret)
+		notPtrTmpl.Execute(sb, map[string]any{
+			"rule":            nr.rule,
+			"index":           nr.idx,
+			"struct_name":     nr.sName,
+			"field_name":      nr.fName,
+			"field_type":      nr.fType,
+			"forbidden_value": nr.val,
+		})
+	} else {
+		notTmpl.Execute(sb, map[string]any{
+			"rule":            nr.rule,
+			"index":           nr.idx,
+			"struct_name":     nr.sName,
+			"field_name":      nr.fName,
+			"field_type":      nr.fType,
+			"forbidden_value": nr.val,
+		})
 	}
-	return fmt.Sprintf(notRuleNoPtrFunc, nr.sName, nr.fName, nr.idx, nr.val, ret)
+	return sb.String()
 }
 
 func NewNotRule(structName, fieldType, fieldName, rule string) *notRule {
@@ -39,32 +54,11 @@ func NewNotRule(structName, fieldType, fieldName, rule string) *notRule {
 	index++
 	return &notRule{
 		idx:   index,
+		rule:  rule,
 		sName: structName,
 		fName: fieldName,
+		fType: fieldType,
 		val:   rule[1:],
 		isPtr: fieldType[0] == '*',
 	}
 }
-
-// NotRuleFuncStr
-//	[1] : 结构体名
-//	[2] : 字段名
-//	[3] : 随机编号
-//	[4] : 禁止值
-const notRuleNoPtrFunc = `
-func (i *%[1]s) _%[2]s_invalid_not_%[3]d_() error {
-	if i.%[2]s == %[4]s {
-		return %[5]s
-	}
-	return nil
-}
-`
-
-const notRulePtrFunc = `
-func (i *%[1]s) _%[2]s_invalid_not_%[3]d_() error {
-	if i.%[2]s != nil && *i.%[2]s == %[4]s {
-		return %[5]s
-	}
-	return nil
-}
-`

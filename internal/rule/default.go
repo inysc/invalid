@@ -1,8 +1,12 @@
 package rule
 
-import "fmt"
+import (
+	"bytes"
+	"fmt"
+)
 
 type defaultRule struct {
+	rule  string // 对应的规则
 	sName string // 结构体名
 	fName string // 字段名
 	fType string // 类型
@@ -12,38 +16,40 @@ type defaultRule struct {
 
 var _ Ruler = &defaultRule{}
 
-func NewDefaultRule(structName, fieldType, filedName, val string) *defaultRule {
+func NewDefaultRule(structName, fieldType, filedName, rule string) *defaultRule {
 	return &defaultRule{
+		rule:  rule,
 		sName: structName,
 		fName: filedName,
 		fType: fieldType,
-		val:   mvRefTag(val),
+		val:   mvRefTag(rule),
 		isPtr: fieldType[0] == '*',
 	}
 }
 
 func (dr *defaultRule) Meth() string {
+	sb := &bytes.Buffer{}
 	if dr.isPtr && dr.val != "nil" {
-		return fmt.Sprintf(defaultPtrFuncStr, dr.sName, dr.fName, dr.fType[1:], dr.val)
+		defaultPtrTmpl.Execute(sb, map[string]any{
+			"rule":          dr.rule,
+			"struct_name":   dr.sName,
+			"field_name":    dr.fName,
+			"field_type":    dr.fType,
+			"default_value": dr.val,
+		})
+	} else {
+		defaultTmpl.Execute(sb, map[string]any{
+			"rule":          dr.rule,
+			"struct_name":   dr.sName,
+			"field_name":    dr.fName,
+			"field_type":    dr.fType,
+			"default_value": dr.val,
+		})
 	}
-	return fmt.Sprintf(defaultNoPtrFuncStr, dr.sName, dr.fName, dr.val)
+
+	return sb.String()
 }
 
 func (dr *defaultRule) Name() string {
 	return fmt.Sprintf("_%s_invalid_default_", dr.fName)
 }
-
-const defaultNoPtrFuncStr = `
-func (i *%[1]s) _%[2]s_default_() error {
-	i.%[2]s = %[3]s
-	return nil
-}
-`
-
-const defaultPtrFuncStr = `
-func (i *%[1]s) _%[2]s_default_() error {
-	var tmp %[3]s = %[4]s
-	i.%[2]s = &tmp
-	return nil
-}
-`

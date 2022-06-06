@@ -11,8 +11,9 @@ type PInt int64
 // 尝试以他为基础设计 Gen
 //go:generate invalid -type=Pill
 type Pill struct {
-	ID     *int64 `iv:"!nil; [1, 20); @3"`
+	ID     *int64 `iv:"!nil; !2; [1, 20); @3"`
 	Socre  *PInt  `iv:"@12; :>"`
+	IDInt  int
 	Name   string `iv:"!\"\""`
 	Demo0  generate.Generator
 	Demo1  []generate.Generator `iv:""`

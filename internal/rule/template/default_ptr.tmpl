@@ -1,0 +1,6 @@
+// {{ .rule }}
+func (i *{{.struct_name}}) _{{ .field_name }}_default_() error {
+	var tmp {{ remove_ptr .field_type }} = {{ .default_value }}
+	i.{{ .field_name }} = &tmp
+	return nil
+}

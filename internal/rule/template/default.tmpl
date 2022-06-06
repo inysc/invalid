@@ -1,0 +1,5 @@
+// {{ .rule }}
+func (i *{{ .struct_name }}) _{{ .field_name }}_default_() error {
+	i.{{ .field_name }} = {{ .default_value }}
+	return nil
+}

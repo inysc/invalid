@@ -65,6 +65,6 @@ func getr[T any](t T) *T {
 	return &t
 }
 
-func tagDescrip(tag string) string {
+func TagDescrip(tag string) string {
 	return "// " + tag + "\n"
 }
