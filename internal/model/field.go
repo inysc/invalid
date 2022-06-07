@@ -13,7 +13,6 @@ type Field struct {
 	fName string       // 字段名
 	fType string       // 类型信息
 	tag   string       // iv tag 信息
-	duck  bool         // 是否实现了 interface { Invalid() error }
 	Rule  []rule.Ruler // 规则集合
 
 	Val  map[string]string   // 需要的被提前声明的全局数据
@@ -40,7 +39,7 @@ func NewField(pkg, structName string, field *ast.Field) (f *Field) {
 	f.fType = GetFiledType(field.Type)
 	f.tag = taget(field.Tag.Value, "iv")
 
-	f.Val, f.Pkgs, f.duck, f.Rule = rule.NewRules(structName, f.fType, f.fName, f.tag)
+	f.Val, f.Pkgs, f.Rule = rule.NewRules(structName, f.fType, f.fName, f.tag)
 
 	if len(f.Rule) == 0 {
 		return nil
@@ -62,10 +61,6 @@ func (f *Field) Meths() string {
 		} else {
 			deferStr = fmt.Sprintf(deferMethStr, f.fName)
 		}
-	}
-
-	if f.duck {
-		callStr += fmt.Sprintf(callMethStr, f.fName+".Invalid")
 	}
 
 	return fmt.Sprintf(fieldFuncStr, f.sName, f.fName, deferStr, callStr, methStr)

@@ -39,7 +39,7 @@ func NewRange(structName, fieldType, fieldName, rule string) *rangeRule {
 		isNum:  true,
 		isPtr:  fieldType[0] == '*',
 		Val:    map[string]string{},
-		Pkg:    map[string]struct{}{},
+		Pkg:    map[string]struct{}{"errors": {}},
 	}
 
 	if rule[0] == '[' {

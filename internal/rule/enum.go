@@ -3,6 +3,7 @@ package rule
 import (
 	"bytes"
 	"fmt"
+	"strings"
 )
 
 type EnumRule struct {
@@ -11,20 +12,41 @@ type EnumRule struct {
 	sName string
 	fName string
 	fType string
-	IsPtr bool
-	Vals  string
+	vals  string
+
+	Val map[string]string
+	Pkg map[string]struct{}
 }
 
 func (er *EnumRule) Meth() string {
 	sb := &bytes.Buffer{}
-	if er.IsPtr {
+
+	if strings.HasPrefix(er.fType, "*[]") {
+		enumSlicePtrTmpl.Execute(sb, map[string]any{
+			"rule":        er.rule,
+			"index":       er.idx,
+			"struct_name": er.sName,
+			"field_name":  er.fName,
+			"field_type":  er.fType,
+			"enum_value":  er.vals,
+		})
+	} else if strings.HasPrefix(er.fType, "[]") {
+		enumSliceTmpl.Execute(sb, map[string]any{
+			"rule":        er.rule,
+			"index":       er.idx,
+			"struct_name": er.sName,
+			"field_name":  er.fName,
+			"field_type":  er.fType,
+			"enum_value":  er.vals,
+		})
+	} else if strings.HasPrefix(er.fType, "*") {
 		enumPtrTmpl.Execute(sb, map[string]any{
-			"rule":        "",
-			"index":       2,
-			"struct_name": "Pill",
-			"field_name":  "ID",
-			"field_type":  "*int64",
-			"enum_value":  "{234, 123}",
+			"rule":        er.rule,
+			"index":       er.idx,
+			"struct_name": er.sName,
+			"field_name":  er.fName,
+			"field_type":  er.fType,
+			"enum_value":  er.vals,
 		})
 	} else {
 		enumTmpl.Execute(sb, map[string]any{
@@ -33,7 +55,7 @@ func (er *EnumRule) Meth() string {
 			"struct_name": er.sName,
 			"field_name":  er.fName,
 			"field_type":  er.fType,
-			"enum_value":  er.Vals,
+			"enum_value":  er.vals,
 		})
 	}
 
@@ -57,7 +79,9 @@ func NewEnumRule(structName, fieldName, typeName, rule string) *EnumRule {
 		sName: structName,
 		fName: fieldName,
 		fType: typeName,
-		IsPtr: typeName[0] == '*',
-		Vals:  rule,
+		vals:  rule,
+
+		Val: map[string]string{},
+		Pkg: map[string]struct{}{"errors": {}},
 	}
 }

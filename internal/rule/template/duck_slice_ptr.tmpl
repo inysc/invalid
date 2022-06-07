@@ -1,0 +1,10 @@
+// {{ .rule }}
+func (i *{{ .struct_name }}) _{{ .field_name }}_invalid_duck_{{ .index }}_() (err error) {
+	for idx := range *(i.{{ .field_name }}) {
+ 		err = (*(i.{{ .field_name }}))[idx].Invalid()
+		if err != nil {
+			return
+		}
+	}
+	return
+}

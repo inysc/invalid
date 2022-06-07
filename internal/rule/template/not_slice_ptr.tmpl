@@ -1,0 +1,13 @@
+// {{ .rule }}
+func (i *{{ .struct_name }}) _{{ .field_name }}_invalid_not_{{ .index }}_() error {
+	if i.{{ .field_name }} == nil {
+		return nil
+	}
+
+	for _, val := range *(i.{{ .field_name }}) {
+		if val == {{ .forbidden_value }} {
+			return errors.New(`invalid<not>: each of {{ .struct_name }}.{{ .field_name }} must not be {{ .forbidden_value }}`)
+		}
+	}
+	return nil
+}

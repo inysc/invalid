@@ -1,0 +1,4 @@
+// {{ .rule }}
+func (i *{{ .struct_name }}) _{{ .field_name }}_invalid_duck_{{ .index }}_() error {
+	return i.{{ .field_name }}.Invalid()
+}

@@ -1,0 +1,17 @@
+// {{ .rule }}
+func (i *{{ .struct_name }}) _{{ .field_name }}_invalid_enum_{{ .index }}_() error {
+	tot := 0 // 符合枚举值的总数
+	for idx := range i.{{ .field_name }} {
+		for _, v := range []{{ remove_slice .field_type }}{{ .enum_value }} {
+			if i.{{ .field_name }}[idx] == v {
+				tot++
+				break
+			}
+		}
+	}
+	if tot == len(i.{{ .field_name }}) {
+		return nil
+	}
+
+	return errors.New(`invalid<enum>: each of {{ .struct_name }}.{{ .field_name }} must be in the {{ .enum_value }}`)
+}

@@ -1,5 +1,7 @@
 package rule
 
+import "strings"
+
 // 取反关系运算符
 func rRO(l string) string {
 	switch l {
@@ -46,12 +48,9 @@ func KindOfType(typ string) int {
 	return 0
 }
 
-// 移除引用标记
-func mvRefTag(str string) string {
-	if str[0] == '@' {
-		return str[1:]
-	}
-	return str
+// 移除默认值标记
+func mvDefault(str string) string {
+	return strings.TrimPrefix(str, "d")
 }
 
 func If[T any](cond bool, a, b T) T {

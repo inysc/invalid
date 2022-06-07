@@ -11,7 +11,9 @@ type defaultRule struct {
 	fName string // 字段名
 	fType string // 类型
 	val   string // 默认值
-	isPtr bool
+
+	Val map[string]string
+	Pkg map[string]struct{}
 }
 
 var _ Ruler = &defaultRule{}
@@ -22,14 +24,16 @@ func NewDefaultRule(structName, fieldType, filedName, rule string) *defaultRule 
 		sName: structName,
 		fName: filedName,
 		fType: fieldType,
-		val:   mvRefTag(rule),
-		isPtr: fieldType[0] == '*',
+		val:   mvDefault(rule),
+
+		Val: map[string]string{},
+		Pkg: map[string]struct{}{"errors": {}},
 	}
 }
 
 func (dr *defaultRule) Meth() string {
 	sb := &bytes.Buffer{}
-	if dr.isPtr && dr.val != "nil" {
+	if dr.fType[0] == '*' && dr.val != "nil" {
 		defaultPtrTmpl.Execute(sb, map[string]any{
 			"rule":          dr.rule,
 			"struct_name":   dr.sName,
