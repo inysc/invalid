@@ -16,6 +16,10 @@ type defaultRule struct {
 	Pkg map[string]struct{}
 }
 
+func (dr *defaultRule) Prio() int {
+	return PrioDefault
+}
+
 var _ Ruler = &defaultRule{}
 
 func NewDefaultRule(structName, fieldType, filedName, rule string) *defaultRule {
@@ -31,7 +35,7 @@ func NewDefaultRule(structName, fieldType, filedName, rule string) *defaultRule 
 	}
 }
 
-func (dr *defaultRule) Meth() string {
+func (dr *defaultRule) Check() string {
 	sb := &bytes.Buffer{}
 	if dr.fType[0] == '*' && dr.val != "nil" {
 		defaultPtrTmpl.Execute(sb, map[string]any{

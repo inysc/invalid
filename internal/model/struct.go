@@ -3,6 +3,7 @@ package model
 import (
 	"fmt"
 	"go/ast"
+	"strings"
 )
 
 type Struct struct {
@@ -45,22 +46,25 @@ func NewStruct(pkg, name string, typ *ast.StructType) (st *Struct) {
 
 func (s *Struct) Meths() string {
 
-	callStr := ""
 	methStr := ""
-
+	names := []string{}
 	for _, v := range s.Fields {
-		name := fmt.Sprintf("_%s_invalid_", v.fName)
-		callStr += fmt.Sprintf(callMethStr, name)
+		names = append(names, fmt.Sprintf("i._%s_invalid_", v.fName))
 		methStr += v.Meths()
 	}
 
-	return fmt.Sprintf(structMethsStr, s.Name, callStr, methStr)
+	return fmt.Sprintf(structMethsStr, s.Name, strings.Join(names, ",\n"), methStr)
 }
 
 const structMethsStr = `
 func (i *%s)Invalid() (err error) {
-
-	%s
+	for _, v := range []func() error{
+		%s,
+		} {
+		if err =  v(); err != nil {
+			return err
+		}
+	}
 
 	return
 }

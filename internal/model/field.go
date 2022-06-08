@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"go/ast"
 	"invalid/internal/rule"
-	"strings"
+	"sort"
 )
 
 type Field struct {
@@ -45,53 +45,27 @@ func NewField(pkg, structName string, field *ast.Field) (f *Field) {
 		return nil
 	}
 
+	sort.Slice(f.Rule, func(i, j int) bool {
+		return f.Rule[i].Prio() < f.Rule[j].Prio()
+	})
+
 	return
 }
 
 func (f *Field) Meths() string {
-
-	callStr := ""
-	methStr := ""
-	deferStr := ""
-	for _, v := range f.Rule {
-		methStr += v.Meth()
-		name := v.Name()
-		if !strings.Contains(name, "_invalid_default_") {
-			callStr += fmt.Sprintf(callMethStr, v.Name())
-		} else {
-			deferStr = fmt.Sprintf(deferMethStr, f.fName)
-		}
+	checkStr := ""
+	for i := range f.Rule {
+		checkStr += f.Rule[i].Check()
 	}
 
-	return fmt.Sprintf(fieldFuncStr, f.sName, f.fName, deferStr, callStr, methStr)
+	return fmt.Sprintf(fieldFuncStr, f.tag, f.sName, f.fName, checkStr)
 }
 
 const fieldFuncStr = `
+ // 规则：<%s>
 func (i *%s)_%s_invalid_() (err error) {
-	%s
-
 	%s
 
 	return
 }
-
-%s
-
-`
-
-const callMethStr = `
-err = i.%s()
-if err != nil {
-	return err
-}
-
-`
-
-const deferMethStr = `
-defer func ()  {
-	if err != nil {
-		err = i._%s_default_()
-	}
-}()
-
 `

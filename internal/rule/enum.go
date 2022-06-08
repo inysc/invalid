@@ -2,11 +2,10 @@ package rule
 
 import (
 	"bytes"
-	"fmt"
 	"strings"
 )
 
-type EnumRule struct {
+type enumRule struct {
 	idx   int
 	rule  string
 	sName string
@@ -18,7 +17,11 @@ type EnumRule struct {
 	Pkg map[string]struct{}
 }
 
-func (er *EnumRule) Meth() string {
+func (*enumRule) Prio() int {
+	return PrioOther
+}
+
+func (er *enumRule) Check() string {
 	sb := &bytes.Buffer{}
 
 	if strings.HasPrefix(er.fType, "*[]") {
@@ -62,18 +65,14 @@ func (er *EnumRule) Meth() string {
 	return sb.String()
 }
 
-func (er *EnumRule) Name() string {
-	return fmt.Sprintf("_%s_invalid_enum_%d_", er.fName, er.idx)
-}
-
 // NewEnumRule 创建枚举规则
 //	[structName] : 结构体名
 //	[fieldName]  : 字段名
 //	[typeName]   : 字段类型
 //	[rule]       : 规则信息
-func NewEnumRule(structName, fieldName, typeName, rule string) *EnumRule {
+func NewEnumRule(structName, fieldName, typeName, rule string) *enumRule {
 	index++
-	return &EnumRule{
+	return &enumRule{
 		idx:   index,
 		rule:  rule,
 		sName: structName,

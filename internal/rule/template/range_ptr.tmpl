@@ -1,0 +1,4 @@
+if  i.{{ .field_name }} != nil && *i.{{ .field_name }} {{ rRo .opt }} {{ .limit_value }} {
+    err = errors.New(`invalid<range>: {{ .struct_name }}.{{ .field_name }} must be {{ tRo .opt }} {{ .limit_value }}")`)
+    return
+}

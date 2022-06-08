@@ -1,0 +1,6 @@
+for idx := range i.{{ .field_name }} {
+    if i.{{ .field_name }}[idx] {{ rRo .opt }} {{ .limit_value }} {
+        err = errors.New(`invalid<range>: each of {{ .struct_name }}.{{ .field_name }} must be {{ tRo .opt }} {{ .limit_value }}")`)
+        return
+    }
+}

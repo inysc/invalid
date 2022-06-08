@@ -21,11 +21,18 @@ type notRule struct {
 
 var _ Ruler = &notRule{}
 
+func (nr *notRule) Prio() int {
+	if nr.fType[0] == '*' {
+		return PrioNotNil
+	}
+	return PrioNot
+}
+
 func (nr *notRule) Name() string {
 	return fmt.Sprintf("_%s_invalid_not_%d_", nr.fName, nr.idx)
 }
 
-func (nr *notRule) Meth() string {
+func (nr *notRule) Check() string {
 	sb := &bytes.Buffer{}
 	if strings.HasPrefix(nr.fType, "*") && nr.val == "nil" {
 		notTmpl.Execute(sb, map[string]any{

@@ -119,9 +119,6 @@ func (g *Generator) Generate() {
 		g.Printf(")\n\n")
 	}
 
-	log.Println(vals)
-	log.Println(pkgs)
-
 	if len(vals) > 0 {
 		defineStr := ""
 		assignStr := ""

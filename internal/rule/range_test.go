@@ -10,13 +10,13 @@ func TestRange(t *testing.T) {
 	r := &rangeRule{
 		sName: "Req",
 		fName: "ID",
-		num:   1,
+		idx:   1,
 		left:  "<",
 		lVal:  getr("1"),
 		right: ">=",
 		rVal:  getr("3"),
 	}
-	t.Log(r.Meth())
+	t.Log(r.Check())
 }
 
 type Req struct {
@@ -27,16 +27,16 @@ type Req struct {
 
 func TestEnum(t *testing.T) {
 	r := NewEnumRule("Req", "Name", "string", `{"1", "2"}`)
-	t.Log(r.Meth())
+	t.Log(r.Check())
 
 	r = NewEnumRule("Req", "*ID", "int", `{1, 2}`)
-	t.Log(r.Meth())
+	t.Log(r.Check())
 	// err := r.Rule(1)
 	// return err
 }
 
 func TestDefault(t *testing.T) {
-	t.Log(NewDefaultRule("Req", "[]string", "Roles", "make([]string, 0, 100)").Meth())
+	t.Log(NewDefaultRule("Req", "[]string", "Roles", "make([]string, 0, 100)").Check())
 }
 
 type Err struct {

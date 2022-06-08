@@ -1,21 +1,16 @@
 // {{ .rule }}
-func (i *{{ .struct_name }}) _{{ .field_name }}_invalid_enum_{{ .index }}_() error {
-	if i.{{ .field_name }} == nil {
-		return nil
-	}
-
-	tot := 0 // 符合枚举值的总数
+if i.{{ .field_name }} != nil {
+	tot_{{ .index }} := 0 // 符合枚举值的总数
 	for _, val := range *(i.{{ .field_name }}) {
 		for _, v := range []{{ remove_slice_ptr .field_type }}{{ .enum_value }} {
 			if val == v {
-				tot++
+				tot_{{ .index }}++
 				break
 			}
 		}
 	}
-	if tot == len(*(i.{{ .field_name }})) {
-		return nil
+	if tot_{{ .index }} != len(*(i.{{ .field_name }})) {
+		err = errors.New(`invalid<enum>: each of {{ .struct_name }}.{{ .field_name }} must be in the {{ .enum_value }}`)
+		return
 	}
-
-	return errors.New(`invalid<enum>: each of {{ .struct_name }}.{{ .field_name }} must be in the {{ .enum_value }}`)
 }

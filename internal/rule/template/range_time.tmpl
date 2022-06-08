@@ -1,0 +1,10 @@
+var time_{{ .field_name }}_{{ .pos }} time.Time
+time_{{ .field_name }}_{{ .pos }}, err = time.Parse({{ .layout }}, i.{{ .field_name }})
+if err != nil {
+    err = errors.New(`invalid<range>: {{ .struct_name }}.{{ .field_name }} can not be parse to time`)
+    return
+}
+if time_{{ .field_name }}_{{ .pos }}.UnixMicro() {{ rRo .opt }} time_{{ to_lower .struct_name }}_{{ .pos }}_{{ .index }}.UnixMicro(){
+    err = errors.New(`invalid<range>: {{ .struct_name }}.{{ .field_name }} must be {{ tRo .opt }} {{ .limit_value }})`)
+    return
+}

@@ -2,6 +2,7 @@ package rule
 
 import (
 	_ "embed"
+	"strings"
 	"text/template"
 )
 
@@ -63,6 +64,31 @@ var (
 	regexPtrTmpl         *template.Template
 	regexSliceTmpl       *template.Template
 	regexSlicePtrTmpl    *template.Template
+
+	//go:embed template/range.tmpl
+	rangeFuncStr string
+	//go:embed template/range_ptr.tmpl
+	rangePtrFuncStr string
+	//go:embed template/range_time.tmpl
+	rangeTimeFuncStr string
+	//go:embed template/range_time_ptr.tmpl
+	rangeTimePtrFuncStr string
+	//go:embed template/range_slice.tmpl
+	rangeSliceFuncStr string
+	//go:embed template/range_slice_ptr.tmpl
+	rangeSlicePtrFuncStr string
+	//go:embed template/range_length.tmpl
+	rangeLengthFuncStr string
+	//go:embed template/range_length_ptr.tmpl
+	rangeLengthPtrFuncStr string
+	rangeTmpl             *template.Template
+	rangePtrTmpl          *template.Template
+	rangeTimeTmpl         *template.Template
+	rangeTimePtrTmpl      *template.Template
+	rangeSliceTmpl        *template.Template
+	rangeSlicePtrTmpl     *template.Template
+	rangeLengthTmpl       *template.Template
+	rangeLengthPtrTmpl    *template.Template
 )
 
 func init() {
@@ -71,6 +97,9 @@ func init() {
 		"remove_ptr":       remove_ptr,
 		"remove_slice":     remove_slice,
 		"remove_slice_ptr": remove_slice_ptr,
+		"to_lower":         strings.ToLower,
+		"tRo":              tRo,
+		"rRo":              rRo,
 	}
 
 	// default
@@ -219,6 +248,73 @@ func init() {
 			New("invalid_regex_slice_ptr").
 			Funcs(funcMap).
 			Parse(regexSlicePtrFuncStr)
+		if err != nil {
+			panic(err)
+		}
+	}
+
+	// range
+	{
+		rangeTmpl, err = template.
+			New("invalid_range").
+			Funcs(funcMap).
+			Parse(rangeFuncStr)
+		if err != nil {
+			panic(err)
+		}
+
+		rangePtrTmpl, err = template.
+			New("invalid_range_ptr").
+			Funcs(funcMap).
+			Parse(rangePtrFuncStr)
+		if err != nil {
+			panic(err)
+		}
+
+		rangeTimeTmpl, err = template.
+			New("invalid_range_time").
+			Funcs(funcMap).
+			Parse(rangeTimeFuncStr)
+		if err != nil {
+			panic(err)
+		}
+
+		rangeTimePtrTmpl, err = template.
+			New("invalid_range_time_ptr").
+			Funcs(funcMap).
+			Parse(rangeTimePtrFuncStr)
+		if err != nil {
+			panic(err)
+		}
+
+		rangeSliceTmpl, err = template.
+			New("invalid_range_slice").
+			Funcs(funcMap).
+			Parse(rangeSliceFuncStr)
+		if err != nil {
+			panic(err)
+		}
+
+		rangeSlicePtrTmpl, err = template.
+			New("invalid_range_slice_ptr").
+			Funcs(funcMap).
+			Parse(rangeSlicePtrFuncStr)
+		if err != nil {
+			panic(err)
+		}
+
+		rangeLengthTmpl, err = template.
+			New("invalid_range_length").
+			Funcs(funcMap).
+			Parse(rangeLengthFuncStr)
+		if err != nil {
+			panic(err)
+		}
+
+		rangeLengthPtrTmpl, err = template.
+			New("invalid_range_length_ptr").
+			Funcs(funcMap).
+			Parse(rangeLengthPtrFuncStr)
 		if err != nil {
 			panic(err)
 		}

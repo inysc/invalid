@@ -17,11 +17,11 @@ type RegexRule struct {
 	Pkg map[string]struct{}
 }
 
-func (rr *RegexRule) Name() string {
-	return fmt.Sprintf("_%s_invalid_regex_%d_", rr.fName, rr.idx)
+func (*RegexRule) Prio() int {
+	return PrioOther
 }
 
-func (rr *RegexRule) Meth() string {
+func (rr *RegexRule) Check() string {
 	sb := &bytes.Buffer{}
 	if strings.HasPrefix(rr.fType, "*[]") {
 		regexSlicePtrTmpl.Execute(sb, map[string]any{
@@ -65,12 +65,12 @@ func (rr *RegexRule) Meth() string {
 
 func NewRegexRule(structName, fieldType, fieldName, rule string) *RegexRule {
 	index++
-	vname := fmt.Sprintf("regex_%d *regexp.Regexp", index)
-	val := fmt.Sprintf(`regex_%d, err = regexp.Compile(%s)
+	vname := fmt.Sprintf("regex_%s_%d *regexp.Regexp", strings.ToLower(structName), index)
+	val := fmt.Sprintf(`regex_%s_%d, err = regexp.Compile(%s)
 			if err != nil {
 				panic(err)
 			}
-		`, index, rule[1:])
+		`, strings.ToLower(structName), index, rule[1:])
 	return &RegexRule{
 		idx:   index,
 		rule:  rule,

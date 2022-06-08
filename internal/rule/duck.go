@@ -16,11 +16,15 @@ type duckRule struct {
 
 var _ Ruler = &duckRule{}
 
+func (dr *duckRule) Prio() int {
+	return PrioOther
+}
+
 func (dr *duckRule) Name() string {
 	return fmt.Sprintf("_%s_invalid_duck_%d_", dr.fName, dr.idx)
 }
 
-func (dr *duckRule) Meth() string {
+func (dr *duckRule) Check() string {
 	sb := &bytes.Buffer{}
 	if strings.HasPrefix(dr.fType, "*[]") {
 		duckSlicePtrTmpl.Execute(sb, map[string]any{

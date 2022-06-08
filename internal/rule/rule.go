@@ -1,14 +1,15 @@
 package rule
 
 import (
+	"fmt"
 	"log"
 )
 
 var index = 0
 
 type Ruler interface {
-	Name() string // 函数名
-	Meth() string // 对应的方法内容
+	Prio() int     // 优先级
+	Check() string // 对应的方法内容
 }
 
 // NewRules
@@ -32,8 +33,9 @@ func NewRules(st, typ, name, tags string) (
 
 	// isPtr := strings.HasPrefix(typ, "*")
 
+	log.Printf("field<%s>, rules<%s>", name, tags)
 	for _, tag := range splitTag(tags) {
-		log.Printf("single rule<%s>", tag)
+		log.Printf("\tsingle rule<%s>", tag)
 		switch tag[0] {
 		case '!': // 禁止值
 			r := NewNotRule(st, typ, name, tag)
@@ -43,7 +45,7 @@ func NewRules(st, typ, name, tags string) (
 			r := NewEnumRule(st, name, typ, tag)
 			merge(r.Val, r.Pkg)
 			rs = append(rs, NewEnumRule(st, name, typ, tag))
-		case '[', '(': // 区间限制
+		case '[', '(', 'l': // 区间限制
 			r := NewRange(st, typ, name, tag)
 			merge(r.Val, r.Pkg)
 			rs = append(rs, r)
@@ -61,5 +63,6 @@ func NewRules(st, typ, name, tags string) (
 			log.Panicf("the rule<%s> that cannot be parsed (%s)", tags, tag)
 		}
 	}
+	fmt.Println("")
 	return
 }

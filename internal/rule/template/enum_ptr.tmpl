@@ -1,12 +1,15 @@
 // {{ .rule }}
-func (i *{{ .struct_name }}) _{{ .field_name }}_invalid_enum_{{ .index }}_() error {
-	if i.{{ .field_name }} == nil {
-		return nil
-	}
+if i.{{ .field_name }} != nil {
+	val_{{ .index }} := *i.{{ .field_name }}
+	found_{{ .index }} := false
 	for _, v := range []{{ remove_ptr .field_type }}{{ .enum_value }} {
-		if *i.{{ .field_name }} == v {
-			return nil
+		if val_{{ .index }} == v {
+			found_{{ .index }} = true
+			break
 		}
 	}
-	return errors.New(`invalid<enum>: {{ .struct_name }}.{{ .field_name }} must be in the {{ .enum_value }}`)
+	if !found_{{ .index }} {
+		err = errors.New(`invalid<enum>: {{ .struct_name }}.{{ .field_name }} must be in the {{ .enum_value }}`)
+		return
+	}
 }

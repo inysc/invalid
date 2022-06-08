@@ -1,9 +1,7 @@
 // {{ .rule }}
-func (i *{{ .struct_name }}) _{{ .field_name }}_invalid_not_{{ .index }}_() error {
-	for idx := range i.{{ .field_name }} {
-		if i.{{ .field_name }}[idx] == {{ .forbidden_value }} {
-			return errors.New(`invalid<not>: each of {{ .struct_name }}.{{ .field_name }} must not be {{ .forbidden_value }}`)
-		}
+for idx := range i.{{ .field_name }} {
+	if i.{{ .field_name }}[idx] == {{ .forbidden_value }} {
+		err = errors.New(`invalid<not>: each of {{ .struct_name }}.{{ .field_name }} must not be {{ .forbidden_value }}`)
+		return
 	}
-	return nil
 }

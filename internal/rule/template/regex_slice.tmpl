@@ -1,9 +1,7 @@
 // {{ .rule }}
-func (i *{{ .struct_name }}) _{{ .field_name }}_invalid_regex_{{ .index }}_() error {
-	for idx := range i.{{ .field_name }} {
-		if !regex_{{ .index }}.MatchString(*i.{{ .field_name }}[idx]) {
-			return errors.New(`invalid<regex>: each of {{ .struct_name }}.{{ .field_name }} must conform to the regex<{{ .regex_value }}>`)
-		}
+for idx := range i.{{ .field_name }} {
+	if !regex_{{ to_lower .struct_name }}_{{ .index }}.MatchString(*i.{{ .field_name }}[idx]) {
+		err = errors.New(`invalid<regex>: each of {{ .struct_name }}.{{ .field_name }} must conform to the regex<{{ .regex_value }}>`)
+		return
 	}
-	return nil
 }

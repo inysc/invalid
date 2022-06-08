@@ -1,0 +1,4 @@
+if len(i.{{ .field_name }}) {{ rRo .opt }} {{ .limit_value }} {
+    err = errors.New(`invalid<range>: the length of {{ .struct_name }}.{{ .field_name }} must be {{ tRo .opt }} {{ .limit_value }}")`)
+    return
+}

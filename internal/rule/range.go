@@ -1,6 +1,7 @@
 package rule
 
 import (
+	"bytes"
 	"fmt"
 	"log"
 	"strings"
@@ -8,9 +9,10 @@ import (
 
 // 对于字段为 nil 的 不做范围校验
 type rangeRule struct {
+	idx    int
 	sName  string
 	fName  string
-	num    int
+	fType  string
 	left   string
 	lVal   *string
 	right  string
@@ -18,6 +20,7 @@ type rangeRule struct {
 	rVal   *string
 	isNum  bool
 	isPtr  bool
+	isLen  bool
 
 	Val map[string]string
 	Pkg map[string]struct{}
@@ -27,10 +30,15 @@ var _ Ruler = &rangeRule{}
 
 func NewRange(structName, fieldType, fieldName, rule string) *rangeRule {
 	index++
+	isLength := rule[0] == 'l'
+	if isLength {
+		rule = rule[1:]
+	}
 	rr := &rangeRule{
 		sName:  structName,
 		fName:  fieldName,
-		num:    index,
+		fType:  fieldType,
+		idx:    index,
 		left:   "",
 		lVal:   nil,
 		right:  "",
@@ -38,6 +46,7 @@ func NewRange(structName, fieldType, fieldName, rule string) *rangeRule {
 		rVal:   nil,
 		isNum:  true,
 		isPtr:  fieldType[0] == '*',
+		isLen:  isLength,
 		Val:    map[string]string{},
 		Pkg:    map[string]struct{}{"errors": {}},
 	}
@@ -46,99 +55,253 @@ func NewRange(structName, fieldType, fieldName, rule string) *rangeRule {
 		rr.left = ">="
 	} else if rule[0] == '(' {
 		rr.left = ">"
+	} else {
+		log.Panicf("the unsupport rule<%s>", rule)
 	}
 
 	if rule[len(rule)-1] == ']' {
 		rr.right = "<="
 	} else if rule[len(rule)-1] == ')' {
 		rr.right = "<"
+	} else {
+		log.Panicf("the unsupport rule<%s>", rule)
 	}
 
 	if strings.Count(rule, ",") != 1 {
-		log.Panic("not supported<range time>")
-	}
-
-	idx := strings.IndexByte(rule, ',')
-	if strings.TrimSpace(rule[1:idx]) != "" {
-		rr.lVal = getr(rule[1:idx])
-	}
-	if strings.TrimSpace(rule[idx+1:len(rule)-1]) != "" {
-		rr.rVal = getr(rule[idx+1 : len(rule)-1])
+		rr.isNum = false
+		cont := strings.TrimSpace(rule[1:len(rule)-1]) + ","
+		lastPos := 0
+		vals := make([]*string, 0, 3)
+		for idx, v := range cont {
+			if v == ',' {
+				val := strings.TrimSpace(cont[lastPos:idx])
+				if val != "" {
+					vals = append(vals, &val)
+				} else {
+					vals = append(vals, nil)
+				}
+				lastPos = idx + 1
+			}
+		}
+		rr.lVal = vals[0]
+		rr.layout = *vals[1]
+		rr.rVal = vals[2]
+		if rr.lVal != nil {
+			vname := fmt.Sprintf("time_%s_left_%d time.Time", strings.ToLower(structName), index)
+			val := fmt.Sprintf(`time_%s_left_%d, err = time.Parse(%s, %s)
+					if err != nil {
+						panic(err)
+					}
+				`, strings.ToLower(structName), index, rr.layout, *rr.lVal)
+			rr.Val[vname] = val
+			rr.Pkg["time"] = struct{}{}
+		}
+		if rr.rVal != nil {
+			vname := fmt.Sprintf("time_%s_right_%d time.Time", strings.ToLower(structName), index)
+			val := fmt.Sprintf(`time_%s_right_%d, err = time.Parse(%s, %s)
+					if err != nil {
+						panic(err)
+					}
+				`, strings.ToLower(structName), index, rr.layout, *rr.rVal)
+			rr.Val[vname] = val
+			rr.Pkg["time"] = struct{}{}
+		}
+	} else {
+		rr.isNum = true
+		idx := strings.IndexByte(rule, ',')
+		lVal := strings.TrimSpace(rule[1:idx])
+		if lVal != "" {
+			rr.lVal = &lVal
+		}
+		rVal := strings.TrimSpace(rule[idx+1 : len(rule)-1])
+		if rVal != "" {
+			rr.rVal = &rVal
+		}
 	}
 
 	return rr
 }
 
-func (rr *rangeRule) Name() string {
-	return fmt.Sprintf("_%s_invalid_range_%d_", rr.fName, rr.num)
+func (*rangeRule) Prio() int {
+	return PrioOther
 }
 
-func (rr *rangeRule) Meth() string {
-	ret := fmt.Sprintf("func (i *%s)_%s_invalid_range_%d_() error {\n", rr.sName, rr.fName, rr.num)
-
-	ret += rr.f1()
-	ret += rr.f2("left", rRO(rr.left), rr.lVal)
-	ret += rr.f2("right", rRO(rr.right), rr.rVal)
-
-	ret += "return nil\n}\n\n"
-
-	return ret
-}
-
-func (rr *rangeRule) f1() string {
-	if rr.isPtr {
-		return fmt.Sprintf(`if i.%s == nil {
-			return nil
-		}
-		`, rr.fName)
-	}
-	return ""
-}
-
-func (rr *rangeRule) f2(loc, opt string, val *string) string {
-	star := If(rr.isPtr, "*", "")
-
-	stmt := ""
-	if val != nil {
-		if rr.isNum {
-			stmt += fmt.Sprintf("if %si.%s %s %s {\n", star, rr.fName, opt, *val)
+func (rr *rangeRule) Check() string {
+	sb := &bytes.Buffer{}
+	isPtr := rr.fType[0] == '*'
+	if rr.isLen {
+		if isPtr {
+			if rr.lVal != nil {
+				rangeLengthPtrTmpl.Execute(sb, map[string]any{
+					"struct_name": rr.sName,
+					"field_name":  rr.fName,
+					"field_type":  rr.fType,
+					"opt":         rr.left,
+					"limit_value": *rr.lVal,
+				})
+			}
+			if rr.rVal != nil {
+				rangeLengthPtrTmpl.Execute(sb, map[string]any{
+					"struct_name": rr.sName,
+					"field_name":  rr.fName,
+					"field_type":  rr.fType,
+					"opt":         rr.right,
+					"limit_value": *rr.rVal,
+				})
+			}
 		} else {
-			log.Panic("not supported<time range>")
-			// vName := fmt.Sprintf("_time_%s_%d time.Time", loc, rr.num)
-
-			// rr.Val[vName] = fmt.Sprintf(
-			// 	`%s, err = time.Parse(%s, *i.%s)
-			// 	if err != nil {
-			// 		panic(err)
-			// 	}
-			// `, vName, rr.layout, star)
-
-			// rr.Pkg["time"] = struct{}{}
-
-			// stmt += fmt.Sprintf(
-			// 	`tm_%s, err := time.Parse(%s, %si.%s)`,
-			// 	loc, rr.layout, star, rr.fName,
-			// )
-			// stmt += `if err != nil {
-			// 	return err
-			// `
-
-			// tm, err := time.Parse("", "")
-			// if err != nil {
-			// 	return ""
-			// }
-			// if tm.Sub(tm) > 0 {
-			// 	return ""
-			// }
-			// stmt += ""
+			if rr.lVal != nil {
+				rangeLengthTmpl.Execute(sb, map[string]any{
+					"struct_name": rr.sName,
+					"field_name":  rr.fName,
+					"field_type":  rr.fType,
+					"opt":         rr.left,
+					"limit_value": *rr.lVal,
+				})
+			}
+			if rr.rVal != nil {
+				rangeLengthTmpl.Execute(sb, map[string]any{
+					"struct_name": rr.sName,
+					"field_name":  rr.fName,
+					"field_type":  rr.fType,
+					"opt":         rr.right,
+					"limit_value": *rr.rVal,
+				})
+			}
 		}
-		stmt += fmt.Sprintf(
-			`return errors.New("invalid<range>: %s.%s must not be %s %s")`,
-			rr.sName, rr.fName, tRO(opt), *val,
-		)
-		stmt += "\n}\n\n"
-
+	} else if strings.Contains(rr.fType, "[]") {
+		if isPtr {
+			if rr.lVal != nil {
+				rangeSlicePtrTmpl.Execute(sb, map[string]any{
+					"struct_name": rr.sName,
+					"field_name":  rr.fName,
+					"field_type":  rr.fType,
+					"opt":         rr.left,
+					"limit_value": *rr.lVal,
+				})
+			}
+			if rr.rVal != nil {
+				rangeSlicePtrTmpl.Execute(sb, map[string]any{
+					"struct_name": rr.sName,
+					"field_name":  rr.fName,
+					"field_type":  rr.fType,
+					"opt":         rr.right,
+					"limit_value": *rr.rVal,
+				})
+			}
+		} else {
+			if rr.lVal != nil {
+				rangeSliceTmpl.Execute(sb, map[string]any{
+					"struct_name": rr.sName,
+					"field_name":  rr.fName,
+					"field_type":  rr.fType,
+					"opt":         rr.left,
+					"limit_value": *rr.lVal,
+				})
+			}
+			if rr.rVal != nil {
+				rangeSliceTmpl.Execute(sb, map[string]any{
+					"struct_name": rr.sName,
+					"field_name":  rr.fName,
+					"field_type":  rr.fType,
+					"opt":         rr.right,
+					"limit_value": *rr.rVal,
+				})
+			}
+		}
+	} else if rr.isNum {
+		if isPtr {
+			if rr.lVal != nil {
+				rangePtrTmpl.Execute(sb, map[string]any{
+					"struct_name": rr.sName,
+					"field_name":  rr.fName,
+					"field_type":  rr.fType,
+					"opt":         rr.left,
+					"limit_value": *rr.lVal,
+				})
+			}
+			if rr.rVal != nil {
+				rangePtrTmpl.Execute(sb, map[string]any{
+					"struct_name": rr.sName,
+					"field_name":  rr.fName,
+					"field_type":  rr.fType,
+					"opt":         rr.right,
+					"limit_value": *rr.rVal,
+				})
+			}
+		} else {
+			if rr.lVal != nil {
+				rangeTmpl.Execute(sb, map[string]any{
+					"struct_name": rr.sName,
+					"field_name":  rr.fName,
+					"field_type":  rr.fType,
+					"opt":         rr.left,
+					"limit_value": *rr.lVal,
+				})
+			}
+			if rr.rVal != nil {
+				rangeTmpl.Execute(sb, map[string]any{
+					"struct_name": rr.sName,
+					"field_name":  rr.fName,
+					"field_type":  rr.fType,
+					"opt":         rr.right,
+					"limit_value": *rr.rVal,
+				})
+			}
+		}
+	} else {
+		if isPtr {
+			if rr.lVal != nil {
+				rangeTimePtrTmpl.Execute(sb, map[string]any{
+					"index":       rr.idx,
+					"struct_name": rr.sName,
+					"field_name":  rr.fName,
+					"field_type":  rr.fType,
+					"opt":         rr.right,
+					"pos":         "left",
+					"layout":      rr.layout,
+					"limit_value": *rr.rVal,
+				})
+			}
+			if rr.rVal != nil {
+				rangeTimePtrTmpl.Execute(sb, map[string]any{
+					"index":       rr.idx,
+					"struct_name": rr.sName,
+					"field_name":  rr.fName,
+					"field_type":  rr.fType,
+					"opt":         rr.right,
+					"pos":         "right",
+					"layout":      rr.layout,
+					"limit_value": *rr.rVal,
+				})
+			}
+		} else {
+			if rr.lVal != nil {
+				rangeTimeTmpl.Execute(sb, map[string]any{
+					"index":       rr.idx,
+					"struct_name": rr.sName,
+					"field_name":  rr.fName,
+					"field_type":  rr.fType,
+					"opt":         rr.right,
+					"pos":         "left",
+					"layout":      rr.layout,
+					"limit_value": *rr.rVal,
+				})
+			}
+			if rr.rVal != nil {
+				rangeTimeTmpl.Execute(sb, map[string]any{
+					"index":       rr.idx,
+					"struct_name": rr.sName,
+					"field_name":  rr.fName,
+					"field_type":  rr.fType,
+					"opt":         rr.right,
+					"pos":         "right",
+					"layout":      rr.layout,
+					"limit_value": *rr.rVal,
+				})
+			}
+		}
 	}
 
-	return stmt
+	return sb.String()
 }
